@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { signIn } from "next-auth/react"
-import { useRouter, useSearchParams } from "next/navigation"
+import { useRouter } from "next/navigation"
 import { motion } from "framer-motion"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
@@ -19,14 +19,14 @@ export default function SignInPage() {
   const [error, setError] = useState("")
   const [successMessage, setSuccessMessage] = useState("")
   const router = useRouter()
-  const searchParams = useSearchParams()
 
   useEffect(() => {
-    const message = searchParams.get('message')
-    if (message) {
-      setSuccessMessage(message)
-    }
-  }, [searchParams])
+    // Read search params from the browser URL to avoid using Next's useSearchParams hook
+    if (typeof window === 'undefined') return
+    const params = new URLSearchParams(window.location.search)
+    const message = params.get('message')
+    if (message) setSuccessMessage(message)
+  }, [])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()

@@ -1,12 +1,15 @@
 "use client"
 
 import { useState, useEffect } from "react"
-
+import { useRouter } from "next/navigation"
 import { useSession } from "next-auth/react"
 import { motion } from "framer-motion"
+import Link from "next/link"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { DashboardLayout } from "@/components/dashboard/layout"
+import { PaymentSuccessModal } from "@/components/PaymentSuccessModal"
+import { setProUser } from "@/lib/usage"
 import {
   Play,
   BarChart3,
@@ -19,16 +22,17 @@ import {
   Target,
   BookOpen,
   ArrowRight,
-  Zap,
   Star,
   Users,
   Award
 } from "lucide-react"
+import { PricingSection } from "@/components/pricing-section"
 
 export default function DashboardPage() {
   const { data: session } = useSession()
-  const [loading, setLoading] = useState(true)
   const [summary, setSummary] = useState<any>(null)
+  const [showSuccessModal, setShowSuccessModal] = useState(false)
+  const router = useRouter()
 
   useEffect(() => {
     const load = async () => {
@@ -39,11 +43,49 @@ export default function DashboardPage() {
         setSummary(data)
       } catch (e) {
         console.error(e)
-      } finally {
-        setLoading(false)
       }
     }
     load()
+  }, [])
+
+  // Handle payment success
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+
+    const params = new URLSearchParams(window.location.search)
+    const success = params.get('success')
+    const sessionId = params.get('session_id')
+
+    if (success === 'true' && sessionId) {
+      const verifyPayment = async () => {
+        try {
+          const response = await fetch('/api/verify-payment', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ sessionId }),
+          })
+
+          const result = await response.json()
+
+          if (result.success) {
+            // Update user to pro status
+            setProUser(true)
+            setShowSuccessModal(true)
+            
+            // Clean up URL parameters
+            window.history.replaceState({}, '', '/dashboard')
+          } else {
+            console.error('Payment verification failed:', result.error)
+          }
+        } catch (error) {
+          console.error('Error verifying payment:', error)
+        }
+      }
+
+      verifyPayment()
+    }
   }, [])
 
   const stats = [
@@ -86,7 +128,12 @@ export default function DashboardPage() {
   }))
 
   return (
-    <DashboardLayout>
+    <>
+      <PaymentSuccessModal 
+        isOpen={showSuccessModal} 
+        onClose={() => setShowSuccessModal(false)} 
+      />
+      <DashboardLayout>
       {/* Welcome Header */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
@@ -112,58 +159,69 @@ export default function DashboardPage() {
         </div>
       </motion.div>
 
-      {/* Quick Actions */}
+      {/* Quick Actions - centered and fixed width */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.6, delay: 0.1 }}
-        className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8"
+        className="flex flex-col md:flex-row items-center justify-center gap-6 mb-8"
       >
-        <Card className="border-0 shadow-lg bg-gradient-to-r from-blue-600 to-purple-600 text-white hover:shadow-xl transition-all duration-300 cursor-pointer group">
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="text-xl font-semibold mb-2">Voice Interview</h3>
-                <p className="text-blue-100 mb-4">AI-powered voice practice</p>
-                <Button variant="secondary" size="sm" className="bg-white/20 hover:bg-white/30 text-white border-0">
-                  Start Now <ArrowRight className="w-4 h-4 ml-2" />
-                </Button>
+        <Link href="/dashboard/practice/voice" className="w-full md:w-80">
+          <Card className="border-0 shadow-lg bg-gradient-to-r from-blue-600 to-purple-600 text-white hover:shadow-xl transition-all duration-300 cursor-pointer group w-full">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-xl font-semibold mb-2">Voice Interview</h3>
+                  <p className="text-blue-100 mb-4">AI-powered voice practice</p>
+                  <Button variant="secondary" size="sm" className="bg-white/20 hover:bg-white/30 text-white border-0">
+                    Start Now <ArrowRight className="w-4 h-4 ml-2" />
+                  </Button>
+                </div>
+                <Mic className="w-12 h-12 text-white/80 group-hover:scale-110 transition-transform" />
               </div>
-              <Mic className="w-12 h-12 text-white/80 group-hover:scale-110 transition-transform" />
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        </Link>
 
-        <Card className="border-0 shadow-lg bg-gradient-to-r from-purple-600 to-pink-600 text-white hover:shadow-xl transition-all duration-300 cursor-pointer group">
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="text-xl font-semibold mb-2">Text Interview</h3>
-                <p className="text-purple-100 mb-4">Written practice sessions</p>
-                <Button variant="secondary" size="sm" className="bg-white/20 hover:bg-white/30 text-white border-0">
-                  Start Now <ArrowRight className="w-4 h-4 ml-2" />
-                </Button>
+        <Link href="/dashboard/practice/text" className="w-full md:w-80">
+          <Card className="border-0 shadow-lg bg-gradient-to-r from-purple-600 to-pink-600 text-white hover:shadow-xl transition-all duration-300 cursor-pointer group w-full">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-xl font-semibold mb-2">Text Interview</h3>
+                  <p className="text-purple-100 mb-4">Written practice sessions</p>
+                  <Button variant="secondary" size="sm" className="bg-white/20 hover:bg-white/30 text-white border-0">
+                    Start Now <ArrowRight className="w-4 h-4 ml-2" />
+                  </Button>
+                </div>
+                <MessageSquare className="w-12 h-12 text-white/80 group-hover:scale-110 transition-transform" />
               </div>
-              <MessageSquare className="w-12 h-12 text-white/80 group-hover:scale-110 transition-transform" />
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        </Link>
 
-        <Card className="border-0 shadow-lg bg-gradient-to-r from-green-600 to-teal-600 text-white hover:shadow-xl transition-all duration-300 cursor-pointer group">
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="text-xl font-semibold mb-2">Mock Interview</h3>
-                <p className="text-green-100 mb-4">Full interview simulation</p>
-                <Button variant="secondary" size="sm" className="bg-white/20 hover:bg-white/30 text-white border-0">
-                  Start Now <ArrowRight className="w-4 h-4 ml-2" />
-                </Button>
+        <Link href="/dashboard/practice/mock" className="w-full md:w-80">
+          <Card className="border-0 shadow-lg bg-gradient-to-r from-green-600 to-teal-600 text-white hover:shadow-xl transition-all duration-300 cursor-pointer group w-full">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-xl font-semibold mb-2">Mock Interview</h3>
+                  <p className="text-green-100 mb-4">Full interview simulation</p>
+                  <Button variant="secondary" size="sm" className="bg-white/20 hover:bg-white/30 text-white border-0">
+                    Start Now <ArrowRight className="w-4 h-4 ml-2" />
+                  </Button>
+                </div>
+                <BookOpen className="w-12 h-12 text-white/80 group-hover:scale-110 transition-transform" />
               </div>
-              <BookOpen className="w-12 h-12 text-white/80 group-hover:scale-110 transition-transform" />
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        </Link>
       </motion.div>
+
+      {/* Price card moved below quick actions */}
+      <div className="mb-8">
+        <PricingSection />
+      </div>
 
       {/* Stats Grid */}
       <motion.div
@@ -205,78 +263,13 @@ export default function DashboardPage() {
         ))}
       </motion.div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Recent Sessions */}
+      <div className="grid grid-cols-1 gap-8">
+        {/* Goals Progress (kept) */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, delay: 0.3 }}
-          className="lg:col-span-2"
         >
-          <Card className="border-0 shadow-lg bg-white dark:bg-slate-800">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Clock className="w-5 h-5 text-blue-600" />
-                Recent Sessions
-              </CardTitle>
-              <CardDescription>
-                Your latest interview practice sessions
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {recentSessions.map((session, index) => (
-                  <motion.div
-                    key={index}
-                    whileHover={{ scale: 1.02 }}
-                    className="flex items-center justify-between p-4 bg-slate-50 dark:bg-slate-700 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-600 transition-colors cursor-pointer"
-                  >
-                    <div className="flex items-center gap-4">
-                      <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
-                        session.mode === "Voice" ? "bg-blue-100 dark:bg-blue-900/30 text-blue-600" : "bg-purple-100 dark:bg-purple-900/30 text-purple-600"
-                      }`}>
-                        {session.mode === "Voice" ? <Mic className="w-5 h-5" /> : <MessageSquare className="w-5 h-5" />}
-                      </div>
-                      <div>
-                        <p className="font-medium text-slate-900 dark:text-white">{session.type}</p>
-                        <p className="text-sm text-slate-600 dark:text-slate-400">{session.mode} • {session.duration}</p>
-                      </div>
-                    </div>
-                    <div className="text-right">
-                      <div className="flex items-center gap-2">
-                        <div className="flex items-center">
-                          {[...Array(5)].map((_, i) => (
-                            <Star
-                              key={i}
-                              className={`w-3 h-3 ${
-                                i < Math.floor(session.score / 2) ? "text-yellow-400 fill-current" : "text-slate-300"
-                              }`}
-                            />
-                          ))}
-                        </div>
-                        <span className="font-semibold text-slate-900 dark:text-white">{session.score}/10</span>
-                      </div>
-                      <p className="text-sm text-slate-600 dark:text-slate-400">{session.date}</p>
-                    </div>
-                  </motion.div>
-                ))}
-              </div>
-              <Button variant="outline" className="w-full mt-4 hover:bg-blue-50 hover:text-blue-600 hover:border-blue-300">
-                <Calendar className="w-4 h-4 mr-2" />
-                View All Sessions
-              </Button>
-            </CardContent>
-          </Card>
-        </motion.div>
-
-        {/* Right Sidebar */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, delay: 0.4 }}
-          className="space-y-6"
-        >
-          {/* Goals Progress */}
           <Card className="border-0 shadow-lg bg-white dark:bg-slate-800">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
@@ -317,60 +310,41 @@ export default function DashboardPage() {
               </div>
             </CardContent>
           </Card>
-
-          {/* Achievements */}
-          <Card className="border-0 shadow-lg bg-white dark:bg-slate-800">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Award className="w-5 h-5 text-yellow-600" />
-                Recent Achievements
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                {(summary?.achievementsList ?? []).length === 0 && (
-                  <p className="text-sm text-slate-600 dark:text-slate-400">No achievements yet. Keep practicing!</p>
-                )}
-                {(summary?.achievementsList ?? []).map((a: any, idx: number) => (
-                  <div key={idx} className="flex items-center gap-3 p-3 bg-slate-50 dark:bg-slate-700 rounded-lg">
-                    <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center">
-                      <Trophy className="w-4 h-4 text-white" />
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium text-slate-900 dark:text-white">{a.title}</p>
-                      <p className="text-xs text-slate-600 dark:text-slate-400">{a.description}</p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Quick Actions */}
-          <Card className="border-0 shadow-lg bg-white dark:bg-slate-800">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <BookOpen className="w-5 h-5 text-purple-600" />
-                Quick Actions
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <Button variant="outline" className="w-full justify-start hover:bg-blue-50 hover:text-blue-600 hover:border-blue-300">
-                <Calendar className="w-4 h-4 mr-2" />
-                Schedule Practice
-              </Button>
-              <Button variant="outline" className="w-full justify-start hover:bg-green-50 hover:text-green-600 hover:border-green-300">
-                <BarChart3 className="w-4 h-4 mr-2" />
-                View Analytics
-              </Button>
-              <Button variant="outline" className="w-full justify-start hover:bg-purple-50 hover:text-purple-600 hover:border-purple-300">
-                <Users className="w-4 h-4 mr-2" />
-                Join Community
-              </Button>
-            </CardContent>
-          </Card>
         </motion.div>
+
+        {/* Quick Actions - updated to specific interview entry points */}
+        <Card className="border-0 shadow-lg bg-white dark:bg-slate-800">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <BookOpen className="w-5 h-5 text-purple-600" />
+              Quick Actions
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <Link href="/dashboard/practice/voice">
+              <Button variant="outline" className="w-full justify-start hover:bg-blue-50 hover:text-blue-600 hover:border-blue-300">
+                <Mic className="w-4 h-4 mr-2" />
+                Voice Interview
+              </Button>
+            </Link>
+
+            <Link href="/dashboard/practice/text">
+              <Button variant="outline" className="w-full justify-start hover:bg-purple-50 hover:text-purple-600 hover:border-purple-300">
+                <MessageSquare className="w-4 h-4 mr-2" />
+                Text Interview
+              </Button>
+            </Link>
+
+            <Link href="/dashboard/practice/mock">
+              <Button variant="outline" className="w-full justify-start hover:bg-green-50 hover:text-green-600 hover:border-green-300">
+                <BookOpen className="w-4 h-4 mr-2" />
+                Mock Interview
+              </Button>
+            </Link>
+          </CardContent>
+        </Card>
       </div>
     </DashboardLayout>
+    </>
   )
 }

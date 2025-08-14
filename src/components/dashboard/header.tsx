@@ -1,19 +1,20 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect, useRef } from "react"
 import { useSession, signOut } from "next-auth/react"
 import { motion } from "framer-motion"
 import Link from "next/link"
-import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { UpgradeModal } from "@/components/UpgradeModal"
+import { isProUser } from "@/lib/usage"
 import { 
   Search, 
   User, 
   LogOut, 
   ChevronDown,
   Crown,
-  Gift
+  Gift,
+  Trophy
 } from "lucide-react"
 
 interface HeaderProps {
@@ -23,8 +24,49 @@ interface HeaderProps {
 export function Header({ sidebarCollapsed }: HeaderProps) {
   const { data: session } = useSession()
   const [showUserMenu, setShowUserMenu] = useState(false)
-
   const [showUpgradeModal, setShowUpgradeModal] = useState(false)
+  const [isPro, setIsPro] = useState(false)
+  const userMenuRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    const updatePlanStatus = () => {
+      setIsPro(isProUser())
+    }
+
+    updatePlanStatus()
+    
+    // Update plan status when localStorage changes
+    const handleStorageChange = () => {
+      updatePlanStatus()
+    }
+    
+    window.addEventListener('storage', handleStorageChange)
+    
+    // Also check periodically in case of same-tab changes
+    const interval = setInterval(updatePlanStatus, 1000)
+    
+    return () => {
+      window.removeEventListener('storage', handleStorageChange)
+      clearInterval(interval)
+    }
+  }, [])
+
+  // Handle click outside to close user menu
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (userMenuRef.current && !userMenuRef.current.contains(event.target as Node)) {
+        setShowUserMenu(false)
+      }
+    }
+
+    if (showUserMenu) {
+      document.addEventListener('mousedown', handleClickOutside)
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside)
+    }
+  }, [showUserMenu])
 
 
 
@@ -68,7 +110,7 @@ export function Header({ sidebarCollapsed }: HeaderProps) {
 
 
           {/* User Menu */}
-          <div className="relative">
+          <div className="relative" ref={userMenuRef}>
             <button
               onClick={() => setShowUserMenu(!showUserMenu)}
               className="flex items-center space-x-3 p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
@@ -90,7 +132,7 @@ export function Header({ sidebarCollapsed }: HeaderProps) {
                     {session?.user?.name || "User"}
                   </p>
                   <p className="text-xs text-slate-600 dark:text-slate-400">
-                    Pro Member
+                    {isPro ? "Pro Member" : "Free Member"}
                   </p>
                 </div>
               </div>
@@ -126,9 +168,17 @@ export function Header({ sidebarCollapsed }: HeaderProps) {
                         {session?.user?.email}
                       </p>
                       <div className="flex items-center space-x-1 mt-1">
-                        <Crown className="w-3 h-3 text-yellow-500" />
-                        <span className="text-xs text-yellow-600 dark:text-yellow-400 font-medium">
-                          Pro Member
+                        {isPro ? (
+                          <Crown className="w-3 h-3 text-yellow-500" />
+                        ) : (
+                          <Trophy className="w-3 h-3 text-blue-500" />
+                        )}
+                        <span className={`text-xs font-medium ${
+                          isPro 
+                            ? "text-yellow-600 dark:text-yellow-400" 
+                            : "text-blue-600 dark:text-blue-400"
+                        }`}>
+                          {isPro ? "Pro Member" : "Free Member"}
                         </span>
                       </div>
                     </div>

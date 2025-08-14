@@ -2,6 +2,8 @@
 
 import { motion } from "framer-motion"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
+import Link from "next/link"
 import { 
   Mic, 
   MessageSquare, 
@@ -73,7 +75,7 @@ const features = [
 
 export function FeaturesSection() {
   return (
-    <section className="py-24 relative overflow-hidden">
+    <section id="features" className="py-20 relative overflow-hidden">
       {/* Background with subtle pattern */}
       <div className="absolute inset-0 bg-gradient-to-b from-white via-slate-50 to-white dark:from-slate-900 dark:via-slate-800 dark:to-slate-900">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,rgba(59,130,246,0.05),transparent_50%)]"></div>
@@ -86,13 +88,13 @@ export function FeaturesSection() {
           whileInView={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8 }}
           viewport={{ once: true }}
-          className="text-center mb-16"
+          className="text-center mb-12"
         >
-          <h2 className="text-4xl md:text-5xl font-bold text-slate-900 dark:text-white mb-4">
+          <h2 className="text-3xl md:text-4xl font-semibold text-slate-900 dark:text-white mb-3">
             Everything You Need to
             <span className="bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent"> Succeed</span>
           </h2>
-          <p className="text-xl text-slate-600 dark:text-slate-300 max-w-3xl mx-auto">
+          <p className="text-base md:text-lg text-slate-600 dark:text-slate-300 max-w-3xl mx-auto">
             Comprehensive interview preparation tools powered by cutting-edge AI technology
           </p>
         </motion.div>
@@ -150,13 +152,13 @@ export function FeaturesSection() {
             <p className="text-blue-100 mb-6 max-w-2xl mx-auto">
               Join thousands of successful candidates who have improved their interview skills with PrepMate
             </p>
-            <motion.button
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              className="bg-white text-blue-600 px-8 py-3 rounded-lg font-semibold hover:bg-blue-50 transition-colors"
-            >
-              Start Your Free Trial
-            </motion.button>
+            <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+              <Link href="/auth/signup" className="inline-block">
+                <Button className="bg-white text-blue-600 px-8 py-3 rounded-lg font-semibold hover:bg-blue-50 transition-colors">
+                  Start Your Free Trial
+                </Button>
+              </Link>
+            </motion.div>
           </div>
         </motion.div>
       </div>

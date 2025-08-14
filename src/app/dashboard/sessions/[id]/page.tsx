@@ -31,7 +31,8 @@ function titleCase(s: string | null | undefined) {
   return s.toLowerCase().replace(/(^|_)([a-z])/g, (_, p1, p2) => (p1 ? ' ' : '') + p2.toUpperCase())
 }
 
-function fmtDate(d: Date) {
+function fmtDate(d: string | Date | null | undefined) {
+  if (!d) return ''
   try {
     return new Date(d).toLocaleString()
   } catch {

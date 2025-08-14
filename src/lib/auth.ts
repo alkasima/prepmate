@@ -48,7 +48,7 @@ export const authOptions: NextAuthOptions = {
   ],
   pages: {
     signIn: "/auth/signin",
-    signUp: "/auth/signup",
+    // Note: NextAuth PagesOptions does not include `signUp`. Custom signup flow should be implemented in your app and linked from the sign-in page.
   },
   session: {
     strategy: "jwt",

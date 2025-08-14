@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useRef } from "react"
+import { useState, useRef, useEffect } from "react"
 import { motion } from "framer-motion"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -66,7 +66,26 @@ export default function ResumePage() {
   const [dragActive, setDragActive] = useState(false)
   const [showPreview, setShowPreview] = useState(false)
   const [fileUrl, setFileUrl] = useState<string | null>(null)
+  const [previousResumes, setPreviousResumes] = useState<any[]>([])
+  const [showPreviousResumes, setShowPreviousResumes] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
+
+  // Load previous resumes on component mount
+  useEffect(() => {
+    const loadPreviousResumes = async () => {
+      try {
+        const response = await fetch('/api/resume/list')
+        if (response.ok) {
+          const result = await response.json()
+          setPreviousResumes(result.resumes || [])
+        }
+      } catch (error) {
+        console.error('Error loading previous resumes:', error)
+      }
+    }
+
+    loadPreviousResumes()
+  }, [])
 
   // Mock resume data for demo
   const mockResumeData: ResumeData = {
@@ -143,8 +162,12 @@ export default function ResumePage() {
   }
 
   const handleFile = async (file: File) => {
-    if (!file.type.includes('pdf') && !file.type.includes('doc')) {
-      alert('Please upload a PDF or DOC file')
+    // Accept PDF and Word (doc, docx) by MIME or file extension
+    const isPdf = file.type.includes('pdf') || file.name.toLowerCase().endsWith('.pdf')
+    const isDoc = file.type.includes('msword') || file.type.includes('word') || file.type.includes('officedocument') || file.name.toLowerCase().endsWith('.doc') || file.name.toLowerCase().endsWith('.docx')
+
+    if (!isPdf && !isDoc) {
+      alert('Please upload a PDF or DOC/DOCX file')
       return
     }
 
@@ -155,27 +178,96 @@ export default function ResumePage() {
     const url = URL.createObjectURL(file)
     setFileUrl(url)
 
-    // Simulate file upload
-    setTimeout(() => {
+    try {
+      // Upload and analyze resume with real API
+      const formData = new FormData()
+      formData.append('file', file)
+
+      const response = await fetch('/api/resume/analyze', {
+        method: 'POST',
+        body: formData,
+      })
+
+      // Try to parse JSON body; if parsing fails, read text for debugging
+      let result: any = null
+      try {
+        result = await response.json()
+      } catch (jsonErr) {
+        const textBody = await response.text().catch(() => null)
+        console.error('Server returned non-JSON response', response.status, textBody)
+        setIsUploading(false)
+        alert(`Upload failed: ${response.status} - ${textBody || 'No response body'}`)
+        return
+      }
+
+      if (!response.ok) {
+        console.error('Server responded with error during resume analysis:', result)
+        setIsUploading(false)
+        const serverMessage = result?.error || result?.message || `Server error: ${response.status}`
+        alert(`Upload failed: ${serverMessage}`)
+        return
+      }
+
       setIsUploading(false)
-      analyzeResume()
-    }, 2000)
+      setIsAnalyzing(true)
+
+      // Simulate AI analysis delay for better UX
+      setTimeout(() => {
+        setResumeData(result.extractedData)
+        setIsAnalyzing(false)
+        setAnalysisComplete(true)
+      }, 2000)
+
+    } catch (error) {
+      console.error('Error uploading resume:', error)
+      setIsUploading(false)
+      alert('Failed to upload resume. Please try again.')
+    }
   }
 
-  const analyzeResume = async () => {
-    setIsAnalyzing(true)
-    
-    // Simulate AI analysis
-    setTimeout(() => {
-      setResumeData(mockResumeData)
-      setIsAnalyzing(false)
-      setAnalysisComplete(true)
-    }, 3000)
+
+
+  const generateQuestions = async () => {
+    if (!resumeData) {
+      alert("Please upload and analyze a resume first.")
+      return
+    }
+
+    try {
+      const response = await fetch('/api/resume/generate-questions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          resumeData,
+          jobRole: 'Software Engineer',
+          difficulty: 'intermediate'
+        }),
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to generate questions')
+      }
+
+      const result = await response.json()
+      
+      // Store questions in localStorage for use in practice sessions
+      localStorage.setItem('customInterviewQuestions', JSON.stringify(result.questions))
+      
+      alert(`Generated ${result.questions?.length || 15} custom interview questions based on your resume! Check the Practice section to use them.`)
+    } catch (error) {
+      console.error('Error generating questions:', error)
+      alert("Failed to generate custom questions. Please try again.")
+    }
   }
 
-  const generateQuestions = () => {
-    // This would generate custom interview questions based on resume
-    alert("Custom interview questions generated based on your resume! Check the Practice section.")
+  const loadPreviousResume = (resume: any) => {
+    setResumeData(resume.extractedData)
+    setAnalysisComplete(true)
+    setUploadedFile(null) // Clear current file since we're loading from database
+    setFileUrl(null)
+    setShowPreviousResumes(false)
   }
 
   const removeResume = () => {
@@ -436,6 +528,55 @@ export default function ResumePage() {
               )}
             </CardContent>
           </Card>
+
+          {/* Previous Resumes */}
+          {previousResumes.length > 0 && (
+            <Card className="border-0 shadow-lg bg-white dark:bg-slate-800 mt-6">
+              <CardHeader>
+                <CardTitle className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Calendar className="w-5 h-5 text-green-600" />
+                    Previous Resumes
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setShowPreviousResumes(!showPreviousResumes)}
+                  >
+                    {showPreviousResumes ? 'Hide' : 'Show'}
+                  </Button>
+                </CardTitle>
+              </CardHeader>
+              {showPreviousResumes && (
+                <CardContent>
+                  <div className="space-y-3">
+                    {previousResumes.map((resume) => (
+                      <div
+                        key={resume.id}
+                        className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-700 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-600 transition-colors cursor-pointer"
+                        onClick={() => loadPreviousResume(resume)}
+                      >
+                        <div className="flex items-center gap-3">
+                          <FileText className="w-4 h-4 text-blue-600" />
+                          <div>
+                            <p className="font-medium text-slate-900 dark:text-white">
+                              {resume.filename}
+                            </p>
+                            <p className="text-sm text-slate-600 dark:text-slate-400">
+                              {new Date(resume.createdAt).toLocaleDateString()}
+                            </p>
+                          </div>
+                        </div>
+                        <Button variant="ghost" size="sm">
+                          Load
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              )}
+            </Card>
+          )}
 
           {/* AI Features */}
           <Card className="border-0 shadow-lg bg-gradient-to-r from-purple-600 to-pink-600 text-white mt-6">

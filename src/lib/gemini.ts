@@ -199,27 +199,30 @@ Return ONLY a JSON array of questions, no additional text:
 
 export async function analyzeResume(resumeText: string): Promise<any> {
   try {
+    console.log('Starting Gemini AI analysis...')
+    
     const prompt = `
-Analyze this resume and extract structured information. Return the data in JSON format.
+You are an expert resume parser. Analyze this resume and extract structured information. 
+Return ONLY valid JSON with no additional text or formatting.
 
 RESUME TEXT:
 ${resumeText}
 
-Please extract and return the following information in JSON format:
+Extract and return this exact JSON structure:
 {
   "personalInfo": {
-    "name": "extracted name",
-    "email": "extracted email",
-    "phone": "extracted phone",
-    "location": "extracted location"
+    "name": "full name from resume",
+    "email": "email address",
+    "phone": "phone number",
+    "location": "city, state or location"
   },
-  "summary": "professional summary or objective",
+  "summary": "professional summary or objective statement",
   "experience": [
     {
       "title": "job title",
       "company": "company name",
-      "duration": "employment duration",
-      "description": "job description and achievements"
+      "duration": "employment period",
+      "description": "key responsibilities and achievements"
     }
   ],
   "education": [
@@ -230,46 +233,47 @@ Please extract and return the following information in JSON format:
     }
   ],
   "skills": ["skill1", "skill2", "skill3"],
-  "certifications": ["cert1", "cert2"],
+  "certifications": ["certification1", "certification2"],
   "languages": ["language1", "language2"]
 }
 
-Focus on:
-1. Extracting accurate contact information
-2. Identifying key skills and technologies
-3. Summarizing work experience with achievements
-4. Capturing education details
-5. Finding certifications and additional qualifications
+Important: Return ONLY the JSON object, no other text.
 `
 
     const result = await geminiModel.generateContent(prompt)
-    const response = await result.response
+    const response = result.response
     const text = response.text()
-
-    // Extract JSON from the response
-    const jsonMatch = text.match(/\{[\s\S]*\}/)
-    if (!jsonMatch) {
-      throw new Error('Invalid response format from Gemini')
-    }
-
-    return JSON.parse(jsonMatch[0])
-  } catch (error) {
-    console.error('Error analyzing resume:', error)
     
-    // Return fallback structure
-    return {
-      personalInfo: {
-        name: "Unable to extract",
-        email: "Unable to extract",
-        phone: "Unable to extract",
-        location: "Unable to extract"
-      },
-      summary: "Resume analysis failed. Please try again.",
-      experience: [],
-      education: [],
-      skills: [],
-      certifications: [],
-      languages: []
+    console.log('Gemini response received, length:', text.length)
+    console.log('Raw response:', text.substring(0, 200) + '...')
+
+    // Clean the response text
+    let cleanedText = text.trim()
+    
+    // Remove markdown code blocks if present
+    cleanedText = cleanedText.replace(/```json\s*/g, '').replace(/```\s*/g, '')
+    
+    // Extract JSON from the response
+    const jsonMatch = cleanedText.match(/\{[\s\S]*\}/)
+    if (!jsonMatch) {
+      console.error('No JSON found in response:', cleanedText)
+      throw new Error('Invalid response format from Gemini - no JSON found')
     }
+
+    const jsonString = jsonMatch[0]
+    console.log('Extracted JSON string:', jsonString.substring(0, 200) + '...')
+    
+    const parsedData = JSON.parse(jsonString)
+    console.log('Successfully parsed JSON data')
+    
+    // Validate required fields
+    if (!parsedData.personalInfo || !parsedData.personalInfo.name) {
+      throw new Error('Missing required personalInfo.name field')
+    }
+    
+    return parsedData
+  } catch (error) {
+    console.error('Error analyzing resume with Gemini:', error)
+    throw error // Re-throw to let the API handle the fallback
   }
 }

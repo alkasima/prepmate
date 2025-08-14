@@ -2,6 +2,8 @@
 
 import { motion } from "framer-motion"
 import { Card, CardContent } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
+import Link from "next/link"
 import { 
   UserPlus, 
   Settings, 
@@ -60,20 +62,20 @@ const steps = [
 
 export function HowItWorks() {
   return (
-    <section id="how-it-works" className="py-24 bg-slate-50 dark:bg-slate-800">
+    <section id="how-it-works" className="py-20 bg-slate-50 dark:bg-slate-800">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8 }}
           viewport={{ once: true }}
-          className="text-center mb-16"
+          className="text-center mb-12"
         >
-          <h2 className="text-4xl md:text-5xl font-bold text-slate-900 dark:text-white mb-4">
+          <h2 className="text-3xl md:text-4xl font-semibold text-slate-900 dark:text-white mb-3">
             How PrepMate
             <span className="bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent"> Works</span>
           </h2>
-          <p className="text-xl text-slate-600 dark:text-slate-300 max-w-3xl mx-auto">
+          <p className="text-base md:text-lg text-slate-600 dark:text-slate-300 max-w-3xl mx-auto">
             Get interview-ready in 6 simple steps with our AI-powered platform
           </p>
         </motion.div>
@@ -142,13 +144,13 @@ export function HowItWorks() {
               <p className="text-blue-100 mb-8 max-w-2xl mx-auto text-lg">
                 See how our AI technology provides personalized feedback and helps you improve with every practice session
               </p>
-              <motion.button
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                className="bg-white text-blue-600 px-8 py-4 rounded-xl font-semibold hover:bg-blue-50 transition-colors text-lg shadow-lg"
-              >
-                Try Interactive Demo
-              </motion.button>
+              <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                <Link href="/auth/signup" className="inline-block">
+                  <Button className="bg-white text-blue-600 px-8 py-4 rounded-xl font-semibold hover:bg-blue-50 transition-colors text-lg shadow-lg">
+                    Try Interactive Demo
+                  </Button>
+                </Link>
+              </motion.div>
             </div>
           </div>
         </motion.div>

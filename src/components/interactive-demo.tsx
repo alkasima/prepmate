@@ -4,6 +4,7 @@ import { useState } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
+import Link from "next/link"
 import { 
   Play, 
   Pause, 
@@ -309,14 +310,16 @@ export function InteractiveDemo() {
             whileTap={{ scale: 0.95 }}
             className="inline-block"
           >
-            <Button
-              size="lg"
-              className="bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 hover:from-blue-700 hover:via-purple-700 hover:to-pink-700 text-white font-bold px-12 py-6 text-xl rounded-2xl shadow-2xl hover:shadow-3xl transition-all duration-300"
-            >
-              <Sparkles className="mr-3 w-6 h-6" />
-              Try Full Demo Now
-              <ArrowRight className="ml-3 w-6 h-6" />
-            </Button>
+            <Link href="/auth/signup" className="inline-block">
+              <Button
+                size="lg"
+                className="bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 hover:from-blue-700 hover:via-purple-700 hover:to-pink-700 text-white font-bold px-12 py-6 text-xl rounded-2xl shadow-2xl hover:shadow-3xl transition-all duration-300"
+              >
+                <Sparkles className="mr-3 w-6 h-6" />
+                Try Full Demo Now
+                <ArrowRight className="ml-3 w-6 h-6" />
+              </Button>
+            </Link>
           </motion.div>
         </motion.div>
       </div>

@@ -3,10 +3,11 @@
 import { motion } from "framer-motion"
 import { Button } from "@/components/ui/button"
 import { ArrowRight, Sparkles, Mic, MessageSquare, Trophy, Play, Star } from "lucide-react"
+import Link from "next/link"
 
 export function HeroSection() {
   return (
-    <section className="relative min-h-screen flex items-center justify-center overflow-hidden">
+    <section id="about" className="relative min-h-screen flex items-center justify-center overflow-hidden">
       {/* Dynamic gradient background */}
       <div className="absolute inset-0 bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 dark:from-slate-950 dark:via-blue-950 dark:to-indigo-950">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(59,130,246,0.1),transparent_70%)]"></div>
@@ -93,7 +94,7 @@ export function HeroSection() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.3, duration: 0.8 }}
-            className="text-6xl md:text-8xl font-black leading-tight"
+            className="text-4xl md:text-6xl font-extrabold leading-tight"
           >
             <span className="block bg-gradient-to-r from-slate-900 via-blue-900 to-slate-900 dark:from-white dark:via-blue-100 dark:to-white bg-clip-text text-transparent">
               Master Your
@@ -116,7 +117,7 @@ export function HeroSection() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.4, duration: 0.8 }}
-            className="text-xl md:text-2xl text-slate-600 dark:text-slate-300 max-w-3xl mx-auto leading-relaxed"
+            className="text-base md:text-lg text-slate-600 dark:text-slate-300 max-w-3xl mx-auto leading-relaxed"
           >
             Practice with AI-powered mock interviews, get real-time feedback, and boost your confidence with personalized coaching.
           </motion.p>
@@ -155,35 +156,23 @@ export function HeroSection() {
               className="relative group"
             >
               <div className="absolute -inset-1 bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 rounded-2xl blur opacity-75 group-hover:opacity-100 transition duration-1000 group-hover:duration-200 animate-pulse"></div>
-              <Button
-                size="lg"
-                className="relative bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white shadow-2xl px-10 py-7 text-xl font-bold rounded-2xl border-0"
-              >
-                <motion.div
-                  animate={{ x: [0, 5, 0] }}
-                  transition={{ duration: 2, repeat: Infinity }}
-                  className="flex items-center gap-3"
+              <Link href="/auth/signup">
+                <Button
+                  size="lg"
+                  className="relative bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white shadow-2xl px-8 py-4 text-lg font-semibold rounded-2xl border-0"
                 >
-                  Start Free Practice
-                  <ArrowRight className="w-6 h-6" />
-                </motion.div>
-              </Button>
+                  <motion.div
+                    animate={{ x: [0, 5, 0] }}
+                    transition={{ duration: 2, repeat: Infinity }}
+                    className="flex items-center gap-3"
+                  >
+                    Start Free Practice
+                    <ArrowRight className="w-6 h-6" />
+                  </motion.div>
+                </Button>
+              </Link>
             </motion.div>
-            
-            <motion.div
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              className="group"
-            >
-              <Button
-                variant="outline"
-                size="lg"
-                className="border-2 border-slate-300 dark:border-slate-600 hover:bg-gradient-to-r hover:from-slate-50 hover:to-blue-50 dark:hover:from-slate-800 dark:hover:to-blue-900 px-10 py-7 text-xl font-bold rounded-2xl backdrop-blur-sm bg-white/50 dark:bg-slate-900/50 shadow-xl hover:shadow-2xl transition-all duration-300"
-              >
-                <Play className="mr-3 w-6 h-6 group-hover:text-blue-600 transition-colors" />
-                Watch Demo
-              </Button>
-            </motion.div>
+
           </motion.div>
 
           {/* Stats */}
@@ -194,15 +183,15 @@ export function HeroSection() {
             className="grid grid-cols-3 gap-8 pt-16 max-w-2xl mx-auto"
           >
             <div className="text-center">
-              <div className="text-3xl font-bold text-slate-900 dark:text-white">10K+</div>
+              <div className="text-2xl font-bold text-slate-900 dark:text-white">10K+</div>
               <div className="text-sm text-slate-600 dark:text-slate-400">Interviews Practiced</div>
             </div>
             <div className="text-center">
-              <div className="text-3xl font-bold text-slate-900 dark:text-white">95%</div>
+              <div className="text-2xl font-bold text-slate-900 dark:text-white">95%</div>
               <div className="text-sm text-slate-600 dark:text-slate-400">Success Rate</div>
             </div>
             <div className="text-center">
-              <div className="text-3xl font-bold text-slate-900 dark:text-white">4.9★</div>
+              <div className="text-2xl font-bold text-slate-900 dark:text-white">4.9★</div>
               <div className="text-sm text-slate-600 dark:text-slate-400">User Rating</div>
             </div>
           </motion.div>

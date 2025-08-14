@@ -4,7 +4,9 @@ import { authOptions } from '@/lib/auth'
 import Stripe from 'stripe'
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: '2024-06-20',
+  // Use a supported apiVersion literal so TypeScript accepts the value.
+  // Update this if you intentionally need a different Stripe API version.
+  apiVersion: '2025-07-30.basil',
 })
 
 export async function POST(request: NextRequest) {
