@@ -1,0 +1,196 @@
+// Backup SQLite schema for demo
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+// Same models as your main schema but for SQLite
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String    @unique
+  emailVerified DateTime?
+  image         String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  // Profile information
+  phone         String?
+  location      String?
+  bio           String?
+  currentRole   String?
+  company       String?
+  experience    String?
+  industry      String?
+  targetRole    String?
+  skills        String // JSON string for SQLite
+  
+  // Education
+  degree        String?
+  school        String?
+  graduationYear String?
+  gpa           String?
+  
+  // Social links
+  linkedin      String?
+  github        String?
+  twitter       String?
+  website       String?
+
+  accounts            Account[]
+  sessions            Session[]
+  interviewSessions   InterviewSession[]
+  achievements        UserAchievement[]
+  resumes             Resume[]
+  settings            UserSettings?
+
+  @@map("users")
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+model InterviewSession {
+  id                String   @id @default(cuid())
+  userId            String
+  type              String   // Will store as string for SQLite
+  category          String   // Will store as string for SQLite
+  status            String   // Will store as string for SQLite
+  score             Float?
+  duration          Int? // in minutes
+  questionsAnswered Int      @default(0)
+  totalQuestions    Int      @default(0)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  user      User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  questions InterviewQuestion[]
+  feedback  SessionFeedback?
+
+  @@map("interview_sessions")
+}
+
+model InterviewQuestion {
+  id        String   @id @default(cuid())
+  sessionId String
+  question  String
+  answer    String?
+  score     Float?
+  feedback  String?
+  createdAt DateTime @default(now())
+
+  session InterviewSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@map("interview_questions")
+}
+
+model SessionFeedback {
+  id        String   @id @default(cuid())
+  sessionId String   @unique
+  strengths String   // JSON string for SQLite
+  weaknesses String  // JSON string for SQLite
+  suggestions String // JSON string for SQLite
+  transcript String?
+  audioUrl  String?
+  createdAt DateTime @default(now())
+
+  session InterviewSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@map("session_feedback")
+}
+
+model Achievement {
+  id          String            @id @default(cuid())
+  title       String
+  description String
+  category    String            // Will store as string for SQLite
+  rarity      String            // Will store as string for SQLite
+  points      Int
+  requirements String
+  icon        String
+  createdAt   DateTime          @default(now())
+
+  userAchievements UserAchievement[]
+
+  @@map("achievements")
+}
+
+model UserAchievement {
+  id            String   @id @default(cuid())
+  userId        String
+  achievementId String
+  unlockedAt    DateTime @default(now())
+
+  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  achievement Achievement @relation(fields: [achievementId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, achievementId])
+  @@map("user_achievements")
+}
+
+model Resume {
+  id          String   @id @default(cuid())
+  userId      String
+  filename    String
+  fileUrl     String
+  fileSize    Int
+  mimeType    String
+  extractedData String? // JSON string for SQLite
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("resumes")
+}
+
+model UserSettings {
+  id     String @id @default(cuid())
+  userId String @unique
+
+  // All settings as JSON string for SQLite compatibility
+  settings String // JSON string containing all settings
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("user_settings")
+}

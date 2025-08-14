@@ -1,0 +1,295 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+// Load environment variables
+// Make sure your .env file is in the root directory
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String    @unique
+  emailVerified DateTime?
+  image         String?
+  password      String?   // For email/password authentication
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  // Profile information
+  phone         String?
+  location      String?
+  bio           String?
+  currentRole   String?
+  company       String?
+  experience    String?
+  industry      String?
+  targetRole    String?
+  skills        String[]
+
+  // Education
+  degree        String?
+  school        String?
+  graduationYear String?
+  gpa           String?
+  
+  // Social links
+  linkedin      String?
+  github        String?
+  twitter       String?
+  website       String?
+
+  accounts            Account[]
+  sessions            Session[]
+  interviewSessions   InterviewSession[]
+  achievements        UserAchievement[]
+  resumes             Resume[]
+  settings            UserSettings?
+
+  @@map("users")
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+model InterviewSession {
+  id                String   @id @default(cuid())
+  userId            String
+  type              InterviewType
+  category          InterviewCategory
+  status            SessionStatus
+  score             Float?
+  duration          Int? // in minutes
+  questionsAnswered Int      @default(0)
+  totalQuestions    Int      @default(0)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  user      User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  questions InterviewQuestion[]
+  feedback  SessionFeedback?
+
+  @@map("interview_sessions")
+}
+
+model InterviewQuestion {
+  id        String   @id @default(cuid())
+  sessionId String
+  question  String
+  answer    String?
+  score     Float?
+  feedback  String?
+  createdAt DateTime @default(now())
+
+  session InterviewSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@map("interview_questions")
+}
+
+model SessionFeedback {
+  id        String   @id @default(cuid())
+  sessionId String   @unique
+  strengths String[]
+  weaknesses String[]
+  suggestions String[]
+  transcript String?
+  audioUrl  String?
+  createdAt DateTime @default(now())
+
+  session InterviewSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@map("session_feedback")
+}
+
+model Achievement {
+  id          String            @id @default(cuid())
+  title       String
+  description String
+  category    AchievementCategory
+  rarity      AchievementRarity
+  points      Int
+  requirements String
+  icon        String
+  createdAt   DateTime          @default(now())
+
+  userAchievements UserAchievement[]
+
+  @@map("achievements")
+}
+
+model UserAchievement {
+  id            String   @id @default(cuid())
+  userId        String
+  achievementId String
+  unlockedAt    DateTime @default(now())
+
+  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  achievement Achievement @relation(fields: [achievementId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, achievementId])
+  @@map("user_achievements")
+}
+
+model Resume {
+  id          String   @id @default(cuid())
+  userId      String
+  filename    String
+  fileUrl     String
+  fileSize    Int
+  mimeType    String
+  extractedData Json?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("resumes")
+}
+
+model UserSettings {
+  id     String @id @default(cuid())
+  userId String @unique
+
+  // Notifications
+  emailNotifications      Boolean @default(true)
+  pushNotifications       Boolean @default(true)
+  sessionReminders        Boolean @default(true)
+  achievementAlerts       Boolean @default(true)
+  weeklyReports          Boolean @default(false)
+  marketingEmails        Boolean @default(false)
+
+  // Privacy
+  profileVisibility      ProfileVisibility @default(PUBLIC)
+  showAchievements       Boolean @default(true)
+  showProgress           Boolean @default(true)
+  allowAnalytics         Boolean @default(true)
+  shareData              Boolean @default(false)
+
+  // Appearance
+  theme                  Theme @default(SYSTEM)
+  language               String @default("en")
+  timezone               String @default("PST")
+  dateFormat             String @default("MM/DD/YYYY")
+  compactMode            Boolean @default(false)
+
+  // Audio
+  microphoneEnabled      Boolean @default(true)
+  speakerEnabled         Boolean @default(true)
+  noiseReduction         Boolean @default(true)
+  autoGainControl        Boolean @default(true)
+  echoCancellation       Boolean @default(true)
+  volume                 Int @default(75)
+
+  // Interview
+  defaultType            InterviewType @default(VOICE)
+  sessionLength          Int @default(30)
+  difficultyLevel        DifficultyLevel @default(INTERMEDIATE)
+  autoSave               Boolean @default(true)
+  pauseOnBlur            Boolean @default(false)
+  showHints              Boolean @default(true)
+
+  // Account
+  twoFactorEnabled       Boolean @default(false)
+  sessionTimeout         Int @default(60)
+  loginAlerts            Boolean @default(true)
+  dataRetention          Int @default(365)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("user_settings")
+}
+
+// Enums
+enum InterviewType {
+  VOICE
+  TEXT
+  MOCK
+}
+
+enum InterviewCategory {
+  TECHNICAL
+  BEHAVIORAL
+  GENERAL
+  MIXED
+}
+
+enum SessionStatus {
+  COMPLETED
+  IN_PROGRESS
+  ABANDONED
+}
+
+enum AchievementCategory {
+  PRACTICE
+  PERFORMANCE
+  STREAK
+  MILESTONE
+  SPECIAL
+}
+
+enum AchievementRarity {
+  COMMON
+  RARE
+  EPIC
+  LEGENDARY
+}
+
+enum ProfileVisibility {
+  PUBLIC
+  PRIVATE
+  FRIENDS
+}
+
+enum Theme {
+  LIGHT
+  DARK
+  SYSTEM
+}
+
+enum DifficultyLevel {
+  BEGINNER
+  INTERMEDIATE
+  ADVANCED
+}
