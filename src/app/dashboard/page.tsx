@@ -26,7 +26,7 @@ import {
   Users,
   Award
 } from "lucide-react"
-import { PricingSection } from "@/components/pricing-section"
+
 
 export default function DashboardPage() {
   const { data: session } = useSession()
@@ -220,10 +220,7 @@ export default function DashboardPage() {
         </Link>
       </motion.div>
 
-      {/* Price card moved below quick actions */}
-      <div className="mb-8">
-        <PricingSection />
-      </div>
+
 
       {/* Stats Grid */}
       <motion.div
