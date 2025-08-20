@@ -1,6 +1,8 @@
 # 🎯 PrepMate - AI-Powered Interview Preparation Platform
 
-> **Winner of The Syrotech MVP Hackathon 2025 - Best AI Application**
+> **AI-Powered Interview Preparation for Everyone**
+
+PrepMate is a comprehensive interview preparation platform that uses AI to provide personalized feedback, real-time analysis, and adaptive learning to help job seekers ace their interviews.
 
 [![Next.js](https://img.shields.io/badge/Next.js-15-black?style=for-the-badge&logo=next.js)](https://nextjs.org/)
 [![React](https://img.shields.io/badge/React-19-blue?style=for-the-badge&logo=react)](https://reactjs.org/)
@@ -234,9 +236,9 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 📞 **Contact**
 
-- **Project Link**: [https://github.com/yourusername/prepmate](https://github.com/yourusername/prepmate)
-- **Live Demo**: [https://prepmate.vercel.app](https://prepmate.vercel.app)
-- **Email**: your.email@example.com
+- **Project Link**: [https://github.com/alkasima/prepmate](https://github.com/alkasima/prepmate)
+- **Live Demo**: [https://preepmat.netlify.app/](https://preepmat.netlify.app/)
+- **Email**: alkasima@gmail.com
 
 ---
 
