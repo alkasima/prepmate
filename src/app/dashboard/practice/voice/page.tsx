@@ -23,6 +23,8 @@ import {
   Zap
 } from "lucide-react"
 import Link from "next/link"
+import { isProUser, hasReachedLimit, getRemainingUsage, incrementUsage } from "@/lib/usage"
+import { UpgradeModal } from "@/components/UpgradeModal"
 
 interface Question {
   id: number
@@ -75,6 +77,9 @@ export default function VoiceInterviewPage() {
   const [questionSource, setQuestionSource] = useState<'AI' | 'Fallback'>('Fallback')
   const [sttError, setSttError] = useState<string | null>(null)
   const [isSpeaking, setIsSpeaking] = useState(false)
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false)
+  const [isPro, setIsPro] = useState(false)
+  const [remainingSessions, setRemainingSessions] = useState(0)
 
   // Playback of user's recorded audio
   const [recordedAudioUrl, setRecordedAudioUrl] = useState<string | null>(null)
@@ -85,6 +90,11 @@ export default function VoiceInterviewPage() {
   const mediaRecorderRef = useRef<MediaRecorder | null>(null)
   const audioChunksRef = useRef<Blob[]>([])
   const timerRef = useRef<NodeJS.Timeout | null>(null)
+
+  useEffect(() => {
+    setIsPro(isProUser())
+    setRemainingSessions(getRemainingUsage())
+  }, [])
 
   useEffect(() => {
     return () => {
@@ -288,6 +298,12 @@ export default function VoiceInterviewPage() {
   const question = questions[currentQuestion]
 
   const startSession = async () => {
+    // Check usage limit for free users
+    if (!isPro && hasReachedLimit()) {
+      setShowUpgradeModal(true)
+      return
+    }
+    
     try {
       const res = await fetch('/api/interview/session', {
         method: 'POST',
@@ -337,6 +353,12 @@ export default function VoiceInterviewPage() {
         console.error('Failed to load questions from API')
         setQuestions(sampleQuestions)
         setQuestionSource('Fallback')
+      }
+
+      // Increment usage for free users
+      if (!isPro) {
+        incrementUsage()
+        setRemainingSessions(getRemainingUsage())
       }
 
       setSessionStarted(true)
@@ -411,6 +433,29 @@ export default function VoiceInterviewPage() {
                   </li>
                 </ul>
               </div>
+
+              {/* Usage Display for Free Users */}
+              {!isPro && (
+                <div className="bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800 rounded-lg p-4 mb-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h4 className="font-medium text-orange-900 dark:text-orange-100">Free Plan</h4>
+                      <p className="text-sm text-orange-700 dark:text-orange-300">
+                        {remainingSessions} sessions remaining
+                      </p>
+                    </div>
+                    {remainingSessions === 0 && (
+                      <Button 
+                        onClick={() => setShowUpgradeModal(true)}
+                        size="sm"
+                        className="bg-orange-600 hover:bg-orange-700 text-white"
+                      >
+                        Upgrade to Pro
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              )}
 
               <div className="flex items-center justify-center gap-4">
                 <Link href="/dashboard/practice">
@@ -735,6 +780,12 @@ export default function VoiceInterviewPage() {
           </div>
         </div>
       </div>
+      
+      {/* Upgrade Modal */}
+      <UpgradeModal 
+        isOpen={showUpgradeModal} 
+        onClose={() => setShowUpgradeModal(false)} 
+      />
     </DashboardLayout>
   )
 }

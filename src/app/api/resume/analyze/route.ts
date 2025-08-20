@@ -37,10 +37,12 @@ export async function POST(request: NextRequest) {
       const name = (file.name || '').toLowerCase()
 
       if (mime.includes('pdf') || name.endsWith('.pdf')) {
+        console.log('Processing PDF file...')
         // Try to dynamically import pdf-parse (avoids module-load failures)
         let pdfModule: any = null
         try {
           pdfModule = await import('pdf-parse')
+          console.log('pdf-parse module loaded successfully')
         } catch (impErr) {
           console.warn('pdf-parse dynamic import failed:', impErr)
         }
@@ -57,7 +59,9 @@ export async function POST(request: NextRequest) {
           const pdfFunc = pdfModule.default || pdfModule
           const pdfData = await pdfFunc(buffer)
           resumeText = pdfData?.text || ''
+          console.log('PDF text extracted, length:', resumeText.length)
         } else {
+          console.log('Falling back to basic text decoding for PDF')
           // Fallback: decode bytes to text (best effort)
           resumeText = new TextDecoder('utf-8').decode(uint8)
         }
@@ -67,89 +71,36 @@ export async function POST(request: NextRequest) {
         name.endsWith('.doc') ||
         name.endsWith('.docx')
       ) {
+        console.log('Processing Word document...')
         // For DOC/DOCX files, fallback to text decoding (in prod use mammoth)
         resumeText = new TextDecoder('utf-8').decode(uint8)
+        console.log('Word document text extracted, length:', resumeText.length)
       } else {
+        console.log('Processing as plain text file...')
         // Plain text or unknown - try to decode as utf-8
         resumeText = new TextDecoder('utf-8').decode(uint8)
+        console.log('Plain text extracted, length:', resumeText.length)
       }
 
       // If text extraction failed or resulted in very short text, use fallback
-      if (!resumeText || resumeText.trim().length < 100) {
+      if (!resumeText || resumeText.trim().length < 50) {
+        console.warn('Text extraction resulted in short content, length:', resumeText?.length)
         throw new Error('Text extraction failed or insufficient content')
       }
+      
+      console.log('Text extraction successful, length:', resumeText.length)
+      console.log('First 200 chars:', resumeText.substring(0, 200))
     } catch (extractionError) {
       console.error('Text extraction failed:', extractionError)
-
-      // Use comprehensive sample resume as fallback to ensure downstream flow works
-      resumeText = `
-JOHN DOE
-Software Engineer
-Email: john.doe@email.com
-Phone: +1 (555) 123-4567
-Location: San Francisco, CA
-
-PROFESSIONAL SUMMARY
-Experienced Full Stack Developer with 5+ years of experience building scalable web applications using React, Node.js, and cloud technologies. Passionate about creating user-centric solutions and leading development teams. Proven track record of improving system performance and delivering high-quality software solutions.
-
-WORK EXPERIENCE
-
-Senior Software Engineer | TechCorp Inc. | San Francisco, CA | 2022 - Present
-• Led development of microservices architecture serving 1M+ users
-• Improved system performance by 40% and reduced deployment time by 60%
-• Mentored 5 junior developers and conducted code reviews
-• Implemented automated testing strategies, increasing code coverage to 95%
-• Collaborated with product managers to define technical requirements
-
-Full Stack Developer | StartupXYZ | San Francisco, CA | 2020 - 2022
-• Built responsive web applications using React, Node.js, and PostgreSQL
-• Collaborated with design team to implement pixel-perfect UI components
-• Implemented CI/CD pipelines using Docker and Kubernetes
-• Developed RESTful APIs serving 100K+ daily active users
-• Optimized database queries, reducing response time by 50%
-
-Junior Developer | WebSolutions | San Francisco, CA | 2019 - 2020
-• Developed and maintained client websites using HTML, CSS, JavaScript, and PHP
-• Gained experience in database design and optimization
-• Participated in agile development processes and daily standups
-• Fixed bugs and implemented new features based on client requirements
-
-EDUCATION
-Bachelor of Science in Computer Science
-University of California, Berkeley | Berkeley, CA | 2019
-GPA: 3.8/4.0
-Relevant Coursework: Data Structures, Algorithms, Database Systems, Software Engineering
-
-TECHNICAL SKILLS
-Programming Languages: JavaScript, TypeScript, Python, Java, PHP, SQL
-Frontend: React, Vue.js, HTML5, CSS3, Sass, Bootstrap, Tailwind CSS
-Backend: Node.js, Express.js, Django, Flask, Spring Boot
-Databases: PostgreSQL, MongoDB, MySQL, Redis
-Cloud & DevOps: AWS, Google Cloud, Docker, Kubernetes, Jenkins, Git
-Tools: VS Code, IntelliJ, Postman, Figma, Jira, Slack
-
-CERTIFICATIONS
-• AWS Certified Solutions Architect - Associate (2023)
-• Google Cloud Professional Developer (2022)
-• Certified Scrum Master (CSM) (2021)
-
-LANGUAGES
-• English (Native)
-• Spanish (Conversational)
-• French (Basic)
-
-PROJECTS
-E-Commerce Platform | 2023
-• Built a full-stack e-commerce platform using React and Node.js
-• Implemented payment processing with Stripe API
-• Deployed on AWS with auto-scaling capabilities
-
-Task Management App | 2022
-• Developed a collaborative task management application
-• Used React, Express.js, and MongoDB
-• Implemented real-time updates using WebSocket
-      `
+      
+      // Return error instead of using fallback - let user know extraction failed
+      return NextResponse.json({ 
+        error: 'Failed to extract text from the uploaded file. Please ensure the file is not corrupted and try again.',
+        details: extractionError instanceof Error ? extractionError.message : 'Unknown extraction error'
+      }, { status: 400 })
     }
+
+
 
     // Dynamically import analyzeResume to avoid module initialization errors (e.g. missing GEMINI_API_KEY)
     let analyzeResume: any = null
@@ -181,34 +132,44 @@ Task Management App | 2022
       console.log('Gemini AI analysis successful')
     } catch (aiError: any) {
       console.error('Gemini AI analysis failed:', aiError)
+      console.log('Falling back to text-based parsing...')
 
-      // Provide comprehensive fallback data so UX still works
-      extractedData = {
-        personalInfo: {
-          name: "John Doe",
-          email: "john.doe@email.com",
-          phone: "+1 (555) 123-4567",
-          location: "San Francisco, CA"
-        },
-        summary: "Experienced Full Stack Developer with 5+ years of experience building scalable web applications using React, Node.js, and cloud technologies.",
-        experience: [
-          {
-            title: "Senior Software Engineer",
-            company: "TechCorp Inc.",
-            duration: "2022 - Present",
-            description: "Led development of microservices architecture serving 1M+ users. Improved system performance by 40% and reduced deployment time by 60%."
-          }
-        ],
-        education: [
-          {
-            degree: "Bachelor of Science in Computer Science",
-            school: "University of California, Berkeley",
-            year: "2019"
-          }
-        ],
-        skills: ["JavaScript", "TypeScript", "React", "Node.js", "Python"],
-        certifications: [],
-        languages: ["English"]
+      // Try text-based parsing as fallback
+      try {
+        const { parseResumeText } = await import('@/lib/resume-parser')
+        extractedData = parseResumeText(resumeText)
+        console.log('Text-based parsing successful')
+      } catch (parseError) {
+        console.error('Text-based parsing also failed:', parseError)
+        
+        // Last resort: use comprehensive fallback data
+        extractedData = {
+          personalInfo: {
+            name: "John Doe",
+            email: "john.doe@email.com",
+            phone: "+1 (555) 123-4567",
+            location: "San Francisco, CA"
+          },
+          summary: "Experienced Full Stack Developer with 5+ years of experience building scalable web applications using React, Node.js, and cloud technologies.",
+          experience: [
+            {
+              title: "Senior Software Engineer",
+              company: "TechCorp Inc.",
+              duration: "2022 - Present",
+              description: "Led development of microservices architecture serving 1M+ users. Improved system performance by 40% and reduced deployment time by 60%."
+            }
+          ],
+          education: [
+            {
+              degree: "Bachelor of Science in Computer Science",
+              school: "University of California, Berkeley",
+              year: "2019"
+            }
+          ],
+          skills: ["JavaScript", "TypeScript", "React", "Node.js", "Python"],
+          certifications: [],
+          languages: ["English"]
+        }
       }
     }
 

@@ -15,6 +15,14 @@ export function incrementUsage(): number {
   return newUsage
 }
 
+export function decrementUsage(): number {
+  if (typeof window === 'undefined') return 0
+  const currentUsage = getUserUsage()
+  const newUsage = Math.max(0, currentUsage - 1) // Don't go below 0
+  localStorage.setItem('userUsage', newUsage.toString())
+  return newUsage
+}
+
 export function resetUsage(): void {
   if (typeof window === 'undefined') return
   localStorage.removeItem('userUsage')

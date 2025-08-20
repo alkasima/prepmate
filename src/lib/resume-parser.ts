@@ -30,13 +30,18 @@ export function parseResumeText(text: string): any {
   }
 
   // Extract name (usually first line or line before email)
-  for (let i = 0; i < Math.min(5, lines.length); i++) {
+  for (let i = 0; i < Math.min(8, lines.length); i++) {
     const line = lines[i]
-    if (line.length > 2 && line.length < 50 && 
+    if (line.length > 2 && line.length < 60 && 
         !line.includes('@') && 
         !line.includes('(') && 
         !line.includes('http') &&
-        /^[A-Za-z\s]+$/.test(line)) {
+        !line.includes('www') &&
+        !line.includes('.com') &&
+        !/^\d+/.test(line) && // doesn't start with numbers
+        /^[A-Za-z\s\.\-']+$/.test(line) && // only letters, spaces, dots, hyphens, apostrophes
+        line.split(' ').length >= 2 && // at least two words (first and last name)
+        line.split(' ').length <= 4) { // not more than 4 words
       result.personalInfo.name = line
       break
     }
@@ -69,7 +74,9 @@ export function parseResumeText(text: string): any {
   // Extract experience (look for job titles and companies)
   const experiencePatterns = [
     /([A-Za-z\s]+)\s*\|\s*([A-Za-z\s&.,]+)\s*\|\s*([0-9]{4}[\s\-]*(?:Present|[0-9]{4}))/g,
-    /([A-Za-z\s]+)\s*at\s*([A-Za-z\s&.,]+)\s*\(([0-9]{4}[\s\-]*(?:Present|[0-9]{4}))\)/g
+    /([A-Za-z\s]+)\s*at\s*([A-Za-z\s&.,]+)\s*\(([0-9]{4}[\s\-]*(?:Present|[0-9]{4}))\)/g,
+    /([A-Za-z\s]+)\s*[-–]\s*([A-Za-z\s&.,]+)\s*\(([0-9]{4}[\s\-]*(?:Present|[0-9]{4}))\)/g,
+    /([A-Za-z\s]+)\s*,\s*([A-Za-z\s&.,]+)\s*([0-9]{4}[\s\-]*(?:Present|[0-9]{4}))/g
   ]
 
   for (const pattern of experiencePatterns) {
@@ -81,6 +88,46 @@ export function parseResumeText(text: string): any {
         duration: match[3].trim(),
         description: "Experience details extracted from resume"
       })
+    }
+  }
+
+  // If no structured experience found, look for common job titles
+  if (result.experience.length === 0) {
+    const jobTitles = [
+      'Software Engineer', 'Developer', 'Programmer', 'Analyst', 'Manager', 
+      'Director', 'Consultant', 'Specialist', 'Coordinator', 'Assistant',
+      'Senior', 'Junior', 'Lead', 'Principal', 'Architect', 'Designer'
+    ]
+    
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i]
+      if (jobTitles.some(title => line.toLowerCase().includes(title.toLowerCase()))) {
+        // Look for company name in next few lines
+        let company = 'Company Name'
+        let duration = 'Duration not specified'
+        
+        for (let j = i + 1; j < Math.min(i + 3, lines.length); j++) {
+          const nextLine = lines[j]
+          if (nextLine.length > 3 && nextLine.length < 50 && 
+              !nextLine.toLowerCase().includes('experience') &&
+              !nextLine.toLowerCase().includes('education')) {
+            if (company === 'Company Name') {
+              company = nextLine
+            } else if (duration === 'Duration not specified' && /[0-9]{4}/.test(nextLine)) {
+              duration = nextLine
+            }
+          }
+        }
+        
+        result.experience.push({
+          title: line,
+          company: company,
+          duration: duration,
+          description: "Experience details extracted from resume"
+        })
+        
+        if (result.experience.length >= 3) break // Limit to 3 experiences
+      }
     }
   }
 

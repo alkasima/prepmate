@@ -23,6 +23,8 @@ import {
   TrendingUp
 } from "lucide-react"
 import Link from "next/link"
+import { isProUser, hasReachedLimit, getRemainingUsage, incrementUsage } from "@/lib/usage"
+import { UpgradeModal } from "@/components/UpgradeModal"
 
 interface Question {
   id: number
@@ -77,6 +79,14 @@ export default function TextInterviewPage() {
   const [sessionStarted, setSessionStarted] = useState(false)
   const [timeSpent, setTimeSpent] = useState(0)
   const [showHints, setShowHints] = useState(false)
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false)
+  const [isPro, setIsPro] = useState(false)
+  const [remainingSessions, setRemainingSessions] = useState(0)
+
+  useEffect(() => {
+    setIsPro(isProUser())
+    setRemainingSessions(getRemainingUsage())
+  }, [])
 
   useEffect(() => {
     let interval: NodeJS.Timeout
@@ -212,6 +222,29 @@ export default function TextInterviewPage() {
                 </ul>
               </div>
 
+              {/* Usage Display for Free Users */}
+              {!isPro && (
+                <div className="bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800 rounded-lg p-4 mb-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h4 className="font-medium text-orange-900 dark:text-orange-100">Free Plan</h4>
+                      <p className="text-sm text-orange-700 dark:text-orange-300">
+                        {remainingSessions} sessions remaining
+                      </p>
+                    </div>
+                    {remainingSessions === 0 && (
+                      <Button 
+                        onClick={() => setShowUpgradeModal(true)}
+                        size="sm"
+                        className="bg-orange-600 hover:bg-orange-700 text-white"
+                      >
+                        Upgrade to Pro
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              )}
+
               <div className="flex items-center justify-center gap-4">
                 <Link href="/dashboard/practice">
                   <Button variant="outline">
@@ -220,7 +253,21 @@ export default function TextInterviewPage() {
                   </Button>
                 </Link>
                 <Button 
-                  onClick={() => setSessionStarted(true)}
+                  onClick={() => {
+                    // Check usage limit for free users
+                    if (!isPro && hasReachedLimit()) {
+                      setShowUpgradeModal(true)
+                      return
+                    }
+                    
+                    // Increment usage for free users
+                    if (!isPro) {
+                      incrementUsage()
+                      setRemainingSessions(getRemainingUsage())
+                    }
+                    
+                    setSessionStarted(true)
+                  }}
                   className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white px-8"
                 >
                   <MessageSquare className="w-4 h-4 mr-2" />
@@ -541,6 +588,12 @@ export default function TextInterviewPage() {
           </div>
         </div>
       </div>
+      
+      {/* Upgrade Modal */}
+      <UpgradeModal 
+        isOpen={showUpgradeModal} 
+        onClose={() => setShowUpgradeModal(false)} 
+      />
     </DashboardLayout>
   )
 }

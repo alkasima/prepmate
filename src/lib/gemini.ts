@@ -32,6 +32,11 @@ export async function analyzeInterviewResponse(
   }
 ): Promise<InterviewFeedback> {
   try {
+    console.log('Analyzing interview response with Gemini AI...')
+    console.log('Question:', question.substring(0, 100) + '...')
+    console.log('Answer:', answer.substring(0, 100) + '...')
+    console.log('Category:', category)
+    
     const prompt = `
 You are an expert interview coach analyzing a candidate's response. Please provide detailed feedback.
 
@@ -59,6 +64,12 @@ Please analyze this interview response and provide feedback in the following JSO
   "sentiment": "[positive/neutral/negative]"
 }
 
+IMPORTANT SCORING GUIDELINES:
+- Answers with less than 10 words should score 1-3/10
+- Incomplete answers (like "I am..." without completion) should score 1-2/10
+- Answers with only filler text or nonsense should score 1/10
+- Only give high scores (7-10) for complete, well-structured, detailed responses
+
 Focus on:
 1. Content quality and relevance
 2. Structure and organization
@@ -67,12 +78,15 @@ Focus on:
 5. Technical accuracy (for technical questions)
 6. Behavioral indicators (for behavioral questions)
 
-Be constructive and specific in your feedback.
+Be constructive and specific in your feedback. Do not give high scores to incomplete or very short answers.
 `
 
     const result = await geminiModel.generateContent(prompt)
     const response = await result.response
     const text = response.text()
+    
+    console.log('Gemini AI response received, length:', text.length)
+    console.log('Response preview:', text.substring(0, 200) + '...')
 
     // Extract JSON from the response
     const jsonMatch = text.match(/\{[\s\S]*\}/)
@@ -87,22 +101,57 @@ Be constructive and specific in your feedback.
       throw new Error('Invalid score in Gemini response')
     }
 
+    console.log('Gemini AI analysis successful, score:', feedback.score)
     return feedback
   } catch (error) {
     console.error('Error analyzing interview response:', error)
+    console.log('FALLBACK TRIGGERED - Answer:', answer)
     
-    // Fallback response
+    // Improved fallback response based on answer quality
+    const answerLength = answer.trim().length
+    const wordCount = answer.trim().split(/\s+/).length
+    
+    console.log('Answer analysis - Length:', answerLength, 'Words:', wordCount)
+    
+    let fallbackScore = 7.5
+    let fallbackStrengths = ['Clear communication', 'Relevant examples']
+    let fallbackWeaknesses = ['Could be more specific', 'Add more details']
+    let fallbackSuggestions = ['Include quantifiable results', 'Structure your answer better']
+    
+    // Adjust score based on answer quality
+    if (answerLength < 20 || wordCount < 5) {
+      // Very short or incomplete answer
+      fallbackScore = 2.0
+      fallbackStrengths = ['Attempted to answer']
+      fallbackWeaknesses = ['Answer is too short', 'Lacks detail and substance', 'Does not fully address the question']
+      fallbackSuggestions = ['Provide a complete response', 'Include specific examples', 'Elaborate on your points with more detail']
+    } else if (answerLength < 50 || wordCount < 15) {
+      // Short answer
+      fallbackScore = 4.0
+      fallbackStrengths = ['Started to address the question']
+      fallbackWeaknesses = ['Answer needs more development', 'Lacks specific examples']
+      fallbackSuggestions = ['Expand your response with more details', 'Include concrete examples', 'Structure your answer more clearly']
+    } else if (answerLength < 100 || wordCount < 30) {
+      // Moderate answer
+      fallbackScore = 6.0
+      fallbackStrengths = ['Addresses the question', 'Shows some thought']
+      fallbackWeaknesses = ['Could provide more depth', 'Needs more specific examples']
+      fallbackSuggestions = ['Add more detailed examples', 'Include quantifiable achievements', 'Expand on key points']
+    }
+    
+    console.log('FALLBACK SCORE CALCULATED:', fallbackScore)
+    
     return {
-      score: 7.5,
-      strengths: ['Clear communication', 'Relevant examples'],
-      weaknesses: ['Could be more specific', 'Add more details'],
-      suggestions: ['Include quantifiable results', 'Structure your answer better'],
-      confidence: 75,
-      clarity: 80,
-      relevance: 85,
-      grammarScore: 90,
-      keywordMatch: 70,
-      sentiment: 'positive'
+      score: fallbackScore,
+      strengths: fallbackStrengths,
+      weaknesses: fallbackWeaknesses,
+      suggestions: fallbackSuggestions,
+      confidence: Math.max(20, Math.min(90, answerLength * 2)),
+      clarity: Math.max(30, Math.min(95, wordCount * 3)),
+      relevance: Math.max(25, Math.min(85, answerLength * 1.5)),
+      grammarScore: Math.max(40, Math.min(95, wordCount * 4)),
+      keywordMatch: Math.max(20, Math.min(80, answerLength * 1.2)),
+      sentiment: answerLength > 50 ? 'positive' : 'neutral'
     }
   }
 }
@@ -200,6 +249,7 @@ Return ONLY a JSON array of questions, no additional text:
 export async function analyzeResume(resumeText: string): Promise<any> {
   try {
     console.log('Starting Gemini AI analysis...')
+    console.log('Resume text preview:', resumeText.substring(0, 300) + '...')
     
     const prompt = `
 You are an expert resume parser. Analyze this resume and extract structured information. 
@@ -245,7 +295,7 @@ Important: Return ONLY the JSON object, no other text.
     const text = response.text()
     
     console.log('Gemini response received, length:', text.length)
-    console.log('Raw response:', text.substring(0, 200) + '...')
+    console.log('Raw response preview:', text.substring(0, 300) + '...')
 
     // Clean the response text
     let cleanedText = text.trim()
