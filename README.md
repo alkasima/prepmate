@@ -52,9 +52,8 @@ PrepMate is a comprehensive interview preparation platform that uses AI to provi
 | **Authentication** | NextAuth.js with Google OAuth |
 | **AI Services** | Google Cloud Speech-to-Text, Gemini AI |
 | **Database** | Prisma with PostgreSQL |
-| **Deployment** | Vercel, Fly.io |
 | **Payments** | Stripe integration |
-| **File Processing** | PDF parsing, Cloudinary |
+| **File Processing** | PDF parsing |
 
 ## �� **Demo Credentials**
 
@@ -229,7 +228,6 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ## 🙏 **Acknowledgments**
 
 - **Google Cloud** for Speech-to-Text and Gemini AI
-- **Vercel** for hosting and deployment
 - **Next.js team** for the amazing framework
 - **Tailwind CSS** for the utility-first styling
 - **Framer Motion** for smooth animations
